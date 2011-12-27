@@ -83,8 +83,10 @@ sed -i '/^#!\/usr\/bin\/env python/,+1 d' \
 
 %build
 cd ./contrib/fb303
+export CPPFLAGS="-fpermissive"
 ./bootstrap.sh
-%configure --enable-static=no --with-thriftpath=%{_prefix}
+#%configure --enable-static=no --with-thriftpath=%{_prefix}
+%configure --with-thriftpath=%{_prefix}
 %{__make} %{?_smp_mflags}
 
 %install
@@ -123,13 +125,15 @@ popd
 %defattr(-,root,root,-)
 %doc README
 %{_datadir}/fb303
-%{_libdir}/*.so
+#%{_libdir}/*.so
+%{_libdir}/*.a
 
 %files devel
 %defattr(-,root,root,-)
 %doc README
 %{_includedir}/thrift/fb303
 #%{_libdir}/*.so
+%{_libdir}/*.a
 
 %if %{with_java}
 %files java

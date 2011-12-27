@@ -7,7 +7,7 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 
 #%global config_opts --disable-static --with-thriftpath=%{_prefix} --with-fb303path=%{_prefix} --with-boost-system=boost_system --with-boost-filesystem=boost_filesystem
-%global config_opts --disable-static --with-thriftpath=%{_prefix} --with-fb303path=%{_prefix} --with-boost-system=boost_system --with-boost-filesystem=boost_filesystem
+%global config_opts --with-thriftpath=%{_prefix} --with-fb303path=%{_prefix} --with-boost-system=boost_system --with-boost-filesystem=boost_filesystem
 
 Name:             scribe
 Version:          2.2
@@ -71,7 +71,8 @@ Python bindings for %{name}.
 #%patch2 -p1
 
 %build
-export CPPFLAGS="-DHAVE_NETDB_H=1 -fpermissive"
+export CPPFLAGS="-static -O0 -DHAVE_NETDB_H=1 -fpermissive"
+export LDFLAGS="-static"
 ./bootstrap.sh %{config_opts}
 %configure %{config_opts}
 %{__make} %{?_smp_mflags}
@@ -84,7 +85,9 @@ export CPPFLAGS="-DHAVE_NETDB_H=1 -fpermissive"
 # Install manually
 %{__install} -D -m 755 ./examples/scribe_cat %{buildroot}%{_bindir}/scribe_cat
 %{__install} -D -m 755 ./examples/scribe_ctrl %{buildroot}%{_bindir}/scribe_ctrl
-%{__install} -D -m 755 ./src/libscribe.so %{buildroot}%{_libdir}/libscribe.so
+#%{__install} -D -m 755 ./src/libscribe.so %{buildroot}%{_libdir}/libscribe.so
+%{__install} -D -m 755 ./src/libscribe.a %{buildroot}%{_libdir}/libscribe.a
+%{__install} -D -m 755 ./src/libdynamicbucketupdater.a %{buildroot}%{_libdir}/libdynamicbucketupdater.a
 %{__install} -D -m 644 ./examples/example1.conf %{buildroot}%{_sysconfdir}/scribed/default.conf
 %{__install} -D -m 755 %{SOURCE1} %{buildroot}%{_sysconfdir}/rc.d/init.d/scribed
 %{__install} -D -m 644 %{SOURCE2} %{buildroot}%{_sysconfdir}/sysconfig/scribed
@@ -105,7 +108,9 @@ export CPPFLAGS="-DHAVE_NETDB_H=1 -fpermissive"
 %config(noreplace) %{_sysconfdir}/sysconfig/scribed
 %config(noreplace) %{_sysconfdir}/logrotate.d/scribe
 %{_bindir}/scribed
-%{_libdir}/libscribe.so
+#%{_libdir}/libscribe.so
+%{_libdir}/libscribe.a
+%{_libdir}/libdynamicbucketupdater.a
 %{_sysconfdir}/rc.d/init.d/scribed
 %{_bindir}/scribe_ctrl
 %attr(0750,scribe,scribe) %{_localstatedir}/spool/scribed
