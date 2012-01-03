@@ -1,44 +1,14 @@
-#
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements. See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership. The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License. You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied. See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
+Name: 		thrift
+Version: 	0.8.0
+Release:	1%{?release_tag}	
+License: 	MIT
+Summary:    Multi-language RPC and serialization framework
+Group:      Development/Libraries
+URL: 		http://incubator.apache.org/thrift/
+Source: 	%{name}-%{version}.tar.gz
 
-%{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
-%{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
-# TODO(dreiss): Where is this supposed to go?
-Name:           thrift
-License:        Apache License v2.0
-Group:          Development
-Summary:        RPC and serialization framework
-Version:        0.8.0
-Release:        1
-URL:            http://developers.facebook.com/thrift
-Packager:       David Reiss <dreiss@facebook.com>
-Source0:        %{name}-%{version}.tar.gz
-
-BuildRequires:  gcc >= 3.4.6
-BuildRequires:  gcc-c++
-
-%if %{!?without_python: 1}
-BuildRequires:  python-devel
-%endif
-
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRoot: 	%{_tmppath}/%{name}-%{version}
 
 %description
 Thrift is a software framework for scalable cross-language services
@@ -47,97 +17,65 @@ engine to build services that work efficiently and seamlessly between C++,
 Java, C#, Python, Ruby, Perl, PHP, Objective C/Cocoa, Smalltalk, Erlang,
 Objective Caml, and Haskell.
 
-%files
-%defattr(-,root,root)
-%{_bindir}/thrift
+%package devel
+Summary: Development tools for the %{name}-%{version}
+Group: Development/Libraries
+Requires: %{name} = %{version}-%{release}
+Requires: pkgconfig
 
+%description devel
+This package contains client libraries for %{name}. If you like to develop 
+programs using %{name}, you will need to install %{name}-devel.
 
-%package lib-cpp
-Summary: Thrift C++ library
-Group:   Libraries
+%define python_prefix /usr/
+%define java_prefix /usr/java/lib
 
-%description lib-cpp
-C++ libraries for Thrift.
-
-%files lib-cpp
-%defattr(-,root,root)
-%{_libdir}/libthrift*.so*
-
-
-%package lib-cpp-devel
-Summary:   Thrift C++ library development files
-Group:     Libraries
-Requires:  %{name} = %{version}-%{release}
-Requires:  boost-devel
-Requires:  libevent-devel
-Requires:  zlib-devel
-
-%description lib-cpp-devel
-C++ static libraries and headers for Thrift.
-
-%files lib-cpp-devel
-%defattr(-,root,root)
-%{_includedir}/thrift/
-%{_libdir}/libthrift*.*a
-%{_libdir}/libthrift*.so
-%{_libdir}/pkgconfig/thrift*.pc
-
-%if %{!?without_python: 1}
-%package lib-python
-Summary: Thrift Python library
-Group:   Libraries
-
-%description lib-python
-Python libraries for Thrift.
-
-%files lib-python
-%defattr(-,root,root)
-%{python_sitearch}/*
-%endif
+BuildRequires: boost
+BuildRequires: libevent
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{version}
+# %patch -p1
 
 %build
-# TODO(dreiss): Implement a single --without-build-kludges.
-%configure \
-  --with-python \
-  --with-cpp \
-  --without-java \
-  --without-java \
-  --without-csharp \
-  --without-go \
-  --without-ruby \
-  --without-perl \
-  --without-php \
-  --without-php_extension \
-  --without-haskell \
-  --without-c_glib \
-  --without-erlang 
-
-#make
-#%{__make} %{?_smp_mflags}
-CFLAGS="%{optflags}" %{__make}
-
-%if %{!?without_python: 1}
-cd lib/py
-CFLAGS="%{optflags}" %{__python} setup.py build
-cd ../..
-%endif
+#./bootstrap.sh
+PATH=%{python_prefix}/bin:$PATH %configure PY_PREFIX=%{python_prefix} JAVA_PREFIX=%{java_prefix} --prefix=%{_prefix} --exec-prefix=%{_prefix} --bindir=%{_bindir} --libdir=%{_libdir} --disable-static --without-ruby --without-erlang --without-haskell --without-perl --without-csharp --without-java --without-php --with-python 
+%{__make}
 
 %install
-%makeinstall
+%{__rm} -rf %{buildroot}
+make install DESTDIR=%{buildroot} INSTALL="%{__install} -p"
 
-%if %{!?without_python: 1}
-cd lib/py
-CFLAGS="%{optflags}" %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
-cd ../..
-%endif
+%post
+/sbin/ldconfig
+
+%files
+%defattr(-, root, root, 0755)
+%{_bindir}/*
+#%exclude %{_datadir}/doc/*
+#%exclude %{python_prefix}/lib/python*
+#%exclude %{java_prefix}/*
+#%{java_prefix}/*
+%{_datadir}/doc/*
+
+%files devel
+%defattr(-, root, root, 0755)
+%{python_prefix}/lib/python*
+#%{java_prefix}/*
+#%{_datadir}/doc/*
+%{_includedir}/*
+%{_libdir}/*
+
 
 %clean
-rm -rf ${RPM_BUILD_ROOT}
-
+%{__rm} -rf %{buildroot}
 
 %changelog
-* Wed May 28 2008 David Reiss <dreiss@facebook.com> - 20080529svn
-- Initial build, based on the work of Kevin Smith and Ben Maurer.
+* Mon Aug 16 2010 - jake farrell
+- updated thrift version to 0.5.0
+* Fri Jun 4 2010 - jake farrell
+- Update thrift version to 0.4.0-dev r951482. 
+- Does not build with thrift libs (py, java, php, ..) will have to be built as needed
+* Thu May 17 2010 - jake farrell
+- Initial rpm, thrift version 0.2.0. Does not build with thrift libs (py, java, php, ..) will have to be built as needed
+

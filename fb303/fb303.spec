@@ -85,8 +85,8 @@ sed -i '/^#!\/usr\/bin\/env python/,+1 d' \
 cd ./contrib/fb303
 export CPPFLAGS="-fpermissive"
 ./bootstrap.sh
-#%configure --enable-static=no --with-thriftpath=%{_prefix}
-%configure --with-thriftpath=%{_prefix}
+%configure --enable-static --enable-shared --with-thriftpath=%{_prefix}
+#%configure --with-thriftpath=%{_prefix}
 %{__make} %{?_smp_mflags}
 
 %install

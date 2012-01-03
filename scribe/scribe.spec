@@ -71,10 +71,12 @@ Python bindings for %{name}.
 #%patch2 -p1
 
 %build
-export CPPFLAGS="-static -O0 -DHAVE_NETDB_H=1 -fpermissive"
-export LDFLAGS="-static"
+#export CPPFLAGS="-static -O0 -DHAVE_NETDB_H=1 -fpermissive"
+export CPPFLAGS="-DHAVE_NETDB_H=1 -fpermissive"
+export LDFLAGS="-static -lc -lrt -lboost_filesystem"
 ./bootstrap.sh %{config_opts}
-%configure %{config_opts}
+%configure --enable-shared --enable-static --libdir=/usr/lib64 %{config_opts}
+#%configure %{config_opts}
 %{__make} %{?_smp_mflags}
 
 %install
