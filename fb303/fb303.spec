@@ -16,12 +16,13 @@ BuildRoot:        %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:    automake
 BuildRequires:    byacc
-BuildRequires:    boost-devel >= 1.33.1
+#BuildRequires:    boost-devel >= 1.33.1
+BuildRequires:    boost >= 1.33.1
 BuildRequires:    flex
 BuildRequires:    libevent-devel
 BuildRequires:    libtool
 BuildRequires:    thrift = %{version}
-BuildRequires:    thrift-lib-cpp-devel = %{version}
+BuildRequires:    thrift-devel = %{version}
 BuildRequires:    zlib-devel
 
 %description
@@ -56,7 +57,7 @@ Java bindings for %{name}.
 Summary:          Python bindings for %{name}
 Group:            Development/Libraries
 BuildRequires:    python-devel
-Requires:         thrift-lib-python = %{version}
+Requires:         thrift-devel = %{version}
 
 %description python
 Python bindings for %{name}.

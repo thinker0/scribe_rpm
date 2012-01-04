@@ -1,14 +1,43 @@
-Name: 		thrift
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file 
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+# TODO(dreiss): Have a Python build with and without the extension.
+%{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+%{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+# TODO(dreiss): Where is this supposed to go?
+%{!?thrift_erlang_root: %define thrift_erlang_root /opt/thrift-erl}
+
+Name:       thrift
 Version: 	0.8.0
-Release:	1%{?release_tag}	
-License: 	MIT
+License:    Apache License v2.0
+Group:      Development
 Summary:    Multi-language RPC and serialization framework
+Release:	1%{?release_tag}	
+Epoch:      1
 Group:      Development/Libraries
 URL: 		http://incubator.apache.org/thrift/
-Source: 	%{name}-%{version}.tar.gz
+Source0: 	%{name}-%{version}.tar.gz
+BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-
-BuildRoot: 	%{_tmppath}/%{name}-%{version}
+%if %{!?without_python: 1}
+BuildRequires:  python-devel
+%endif
 
 %description
 Thrift is a software framework for scalable cross-language services
@@ -17,55 +46,96 @@ engine to build services that work efficiently and seamlessly between C++,
 Java, C#, Python, Ruby, Perl, PHP, Objective C/Cocoa, Smalltalk, Erlang,
 Objective Caml, and Haskell.
 
+%files
+%defattr(-, root, root, 0755)
+%{_bindir}/*
+%{_libdir}/libthrift*.so
+
+#%exclude %{_datadir}/doc/*
+#%exclude %{python_prefix}/lib/python*
+#%exclude %{java_prefix}/*
+#%{java_prefix}/*
+#%{_datadir}/doc/*
+
+
 %package devel
 Summary: Development tools for the %{name}-%{version}
 Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 Requires: pkgconfig
+BuildRequires: boost
+BuildRequires: libevent
 
 %description devel
 This package contains client libraries for %{name}. If you like to develop 
 programs using %{name}, you will need to install %{name}-devel.
 
-%define python_prefix /usr/
+%files devel
+%defattr(-, root, root, 0755)
+#%{python_prefix}/lib/python*
+#%{java_prefix}/*
+#%{_datadir}/doc/*
+%{_includedir}/*
+%{_libdir}/libthrift*.a
+%{_libdir}/libthrift*.la
+%{_libdir}/pkgconfig/*
+
+
+%define python_prefix /usr
 %define java_prefix /usr/java/lib
 
-BuildRequires: boost
-BuildRequires: libevent
+%package python
+Summary:          Python bindings for %{name}
+Group:            Development/Libraries
+BuildRequires:    python-devel
+
+%description python
+Python bindings for %{name}.
+
+%files python
+%defattr(-,root,root,-)
+%doc LICENSE
+%{python_sitearch}/*
 
 %prep
+%{__rm} -rf %{buildroot}
 %setup -q -n %{name}-%{version}
 # %patch -p1
 
 %build
-#./bootstrap.sh
-PATH=%{python_prefix}/bin:$PATH %configure PY_PREFIX=%{python_prefix} JAVA_PREFIX=%{java_prefix} --prefix=%{_prefix} --exec-prefix=%{_prefix} --bindir=%{_bindir} --libdir=%{_libdir} --disable-static --without-ruby --without-erlang --without-haskell --without-perl --without-csharp --without-java --without-php --with-python 
+#./bootstrap.sh 
+#PATH=%{python_prefix}/bin:$PATH %configure PY_PREFIX=%{python_prefix} --prefix=%{_prefix} --exec-prefix=%{_prefix} --bindir=%{_bindir} --libdir=%{_libdir} --disable-static --without-ruby --without-erlang --without-haskell --without-perl --without-csharp --without-java --without-php --with-python 
+#./bootstrap.sh %{config_opts}
+%configure %{config_opts} \
+	--without-ruby --without-erlang --without-haskell --without-perl \
+	--without-csharp --without-java --without-php \
+	--with-python 
+
+# %{__make} %{?_smp_mflags}
+# _smp_mflags build error
 %{__make}
+
+%if %{!?without_python: 1}
+cd lib/py
+CFLAGS="%{optflags}" %{__python} setup.py build
+cd ../..
+%endif
+
 
 %install
 %{__rm} -rf %{buildroot}
-make install DESTDIR=%{buildroot} INSTALL="%{__install} -p"
+#make install DESTDIR=%{buildroot} INSTALL="%{__install} -p"
+%{__make} install DESTDIR=%{buildroot} INSTALL="%{__install} -p"
+
+%if %{!?without_python: 1}
+cd lib/py
+%{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+cd ../..
+%endif
+
 
 %post
 /sbin/ldconfig
-
-%files
-%defattr(-, root, root, 0755)
-%{_bindir}/*
-#%exclude %{_datadir}/doc/*
-#%exclude %{python_prefix}/lib/python*
-#%exclude %{java_prefix}/*
-#%{java_prefix}/*
-%{_datadir}/doc/*
-
-%files devel
-%defattr(-, root, root, 0755)
-%{python_prefix}/lib/python*
-#%{java_prefix}/*
-#%{_datadir}/doc/*
-%{_includedir}/*
-%{_libdir}/*
-
 
 %clean
 %{__rm} -rf %{buildroot}
