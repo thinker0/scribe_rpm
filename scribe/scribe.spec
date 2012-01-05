@@ -1,16 +1,12 @@
-%if (0%{?fedora} > 10 || 0%{?rhel} > 5)
-%global with_boost_patch 0
-%else
-%global with_boost_patch 1
-%endif
 
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 #%global config_opts --disable-static --with-thriftpath=%{_prefix} --with-fb303path=%{_prefix} --with-boost-system=boost_system --with-boost-filesystem=boost_filesystem
 %global config_opts --with-thriftpath=%{_prefix} --with-fb303path=%{_prefix} --with-boost-system=boost_system --with-boost-filesystem=boost_filesystem
 
 Name:             scribe
-Version:          2.2
+Version:          2.2.0
 Release:          4%{?dist}
 Summary:          A server for aggregating log data streamed in real time
 
@@ -22,25 +18,21 @@ Source1:          scribed.init
 Source2:          scribed.sysconfig
 Source3:          logrotate
 # make scribe 2.2 work with boost 1.33
-Patch0:           boost-1.33.patch
+#Patch0:           boost-1.33.patch
 # Patch below is from: http://github.com/bterm/sandbox.git
 # make scribe 2.2 work with thrift 0.5.0
-Patch1:           thrift-0.5.0.patch
+#Patch1:           thrift-0.5.0.patch
 # Patch below is from: http://github.com/zxvdr/scribe.git
 # it fixes the initial filename for hourly rolled logs
 Patch2:           hourly_roll_period_initial_filename.patch
 BuildRoot:        %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:    automake
-%if %{with_boost_patch}
-BuildRequires:    boost-devel >= 1.33
-%else
 BuildRequires:    boost-devel >= 1.36
-%endif
 BuildRequires:    fb303-devel >= 0.5.0
 BuildRequires:    libevent-devel
 BuildRequires:    thrift >= 0.5.0
-BuildRequires:    thrift-lib-cpp-devel
+BuildRequires:    thrift-devel
 
 Requires:         %{name}-python
 Requires:         fb303 >= 0.5.0
@@ -63,17 +55,16 @@ Requires:         fb303-python
 Python bindings for %{name}.
 
 %prep
-%setup -q
-%if %{with_boost_patch}
-%patch0 -p1
-%endif
+#%setup -q
+%setup -q -n %{name}-%{version}
+#%patch0 -p1
 #%patch1 -p1
 #%patch2 -p1
 
 %build
 #export CPPFLAGS="-static -O0 -DHAVE_NETDB_H=1 -fpermissive"
 export CPPFLAGS="-DHAVE_NETDB_H=1 -fpermissive"
-export LDFLAGS="-static -lc -lrt -lboost_filesystem"
+export LDFLAGS="-static -lrt -lc -lpthread -lboost_filesystem"
 ./bootstrap.sh %{config_opts}
 %configure --enable-shared --enable-static --libdir=/usr/lib64 %{config_opts}
 #%configure %{config_opts}
