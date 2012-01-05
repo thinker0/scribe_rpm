@@ -49,7 +49,7 @@ Objective Caml, and Haskell.
 %files
 %defattr(-, root, root, 0755)
 %{_bindir}/*
-%{_libdir}/libthrift*.so
+%{_libdir}/libthrift*.so*
 
 #%exclude %{_datadir}/doc/*
 #%exclude %{python_prefix}/lib/python*
@@ -76,10 +76,8 @@ programs using %{name}, you will need to install %{name}-devel.
 #%{java_prefix}/*
 #%{_datadir}/doc/*
 %{_includedir}/*
-%{_libdir}/libthrift*.a
-%{_libdir}/libthrift*.la
+%{_libdir}/libthrift*a
 %{_libdir}/pkgconfig/*
-
 
 %define python_prefix /usr
 %define java_prefix /usr/java/lib
