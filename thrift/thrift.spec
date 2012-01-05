@@ -63,7 +63,7 @@ Summary: Development tools for the %{name}-%{version}
 Group: Development/Libraries
 Requires: %{name} = %{version}-%{release}
 Requires: pkgconfig
-BuildRequires: boost
+BuildRequires: boost-devel
 BuildRequires: libevent
 
 %description devel

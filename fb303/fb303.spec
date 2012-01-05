@@ -1,7 +1,7 @@
-%global with_java 0
 %global with_php 0
 
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+%{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
 Name:             fb303
 Version:          0.8.0
@@ -16,8 +16,7 @@ BuildRoot:        %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:    automake
 BuildRequires:    byacc
-#BuildRequires:    boost-devel >= 1.33.1
-BuildRequires:    boost >= 1.33.1
+BuildRequires:    boost-devel >= 1.33.1
 BuildRequires:    flex
 BuildRequires:    libevent-devel
 BuildRequires:    libtool
@@ -37,21 +36,6 @@ Requires:         %{name} = %{version}
 %description devel
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
-
-%if %{with_java}
-%package java
-Summary:          Java bindings for %{name}
-Group:            Development/Libraries
-BuildRequires:    ant 
-BuildRequires:    java-1.6.0-openjdk-devel
-BuildRequires:    jpackage-utils
-BuildRequires:    thrift-java = %{version}
-Requires:         java-1.6.0-openjdk
-Requires:         thrift-java = %{version}
-
-%description java
-Java bindings for %{name}.
-%endif
 
 %package python
 Summary:          Python bindings for %{name}
@@ -74,6 +58,7 @@ PHP bindings for %{name}.
 %endif
 
 %prep
+%{__rm} -rf %{buildroot}
 %setup -q -n thrift-%{version}
 cd ./contrib/fb303
 
@@ -84,9 +69,9 @@ sed -i '/^#!\/usr\/bin\/env python/,+1 d' \
 
 %build
 cd ./contrib/fb303
-export CPPFLAGS="-fpermissive"
-./bootstrap.sh
-%configure --enable-static --enable-shared --with-thriftpath=%{_prefix}
+export CPPFLAGS="-fpermissive" 
+./bootstrap.sh --with-thriftpath=%{_prefix}
+#%configure %{config_opts} --enable-static --enable-shared --with-thriftpath=%{_prefix}
 #%configure --with-thriftpath=%{_prefix}
 %{__make} %{?_smp_mflags}
 
@@ -95,16 +80,11 @@ export CPPFLAGS="-fpermissive"
 cd ./contrib/fb303
 
 # Fix install path
-sed -i 's/shareddir = lib/shareddir = ${prefix}\/lib/g' cpp/Makefile
+#sed -i 's/shareddir = lib/shareddir = ${prefix}\/lib/g' cpp/Makefile
+sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
 
-%{__make} DESTDIR=%{buildroot} install
-
-# Install Java
-%if %{with_java}
-pushd java/
-ant install -Dthrift_home=%{_prefix} -Ddist.dir=%{buildroot}%{_prefix} -Ddist.lib.dir=%{buildroot}%{_javadir} -lib %{_javadir} -lib %{_javadir}/slf4j -Dnoivy=
-popd
-%endif
+#%{__make} DESTDIR=%{buildroot} install
+%{__make} install DESTDIR=%{buildroot} INSTALL="%{__install} -p"
 
 # Install PHP
 %if %{with_php}
@@ -112,8 +92,26 @@ popd
 %{__cp} -r php/FacebookBase.php %{buildroot}%{_datadir}/php/%{name}/
 %endif
 
+%ifarch x86_64
 # Fix lib install path on x86_64
 %{__mv} %{buildroot}/usr/lib/libfb303.so %{buildroot}%{_libdir}/libfb303.so || true
+%endif
+
+%if %{!?without_python: 1}
+
+#%if %{?python_sitearch == '/usr/lib64/python2.4/site-packages'}
+%ifarch x86_64
+mkdir -p %{buildroot}%{python_sitearch}/fb303 			%{buildroot}%{python_sitearch}/fb303_scripts
+mv       %{buildroot}%{python_sitelib}/fb303 			%{buildroot}%{python_sitearch} || true
+mv       %{buildroot}%{python_sitelib}/fb303_scripts 	%{buildroot}%{python_sitearch} || true
+%endif
+
+#cd py
+#%{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+#cd ..
+
+%endif
+
 
 %clean
 %{__rm} -rf %{buildroot}
@@ -126,8 +124,7 @@ popd
 %defattr(-,root,root,-)
 %doc README
 %{_datadir}/fb303
-#%{_libdir}/*.so
-%{_libdir}/*.a
+#%{_libdir}/*.so*
 
 %files devel
 %defattr(-,root,root,-)
@@ -135,13 +132,6 @@ popd
 %{_includedir}/thrift/fb303
 #%{_libdir}/*.so
 %{_libdir}/*.a
-
-%if %{with_java}
-%files java
-%defattr(-,root,root,-)
-%doc README
-%{_javadir}/libfb303.jar
-%endif
 
 %if %{with_php}
 %files php
@@ -153,10 +143,18 @@ popd
 %files python
 %defattr(-,root,root,-)
 %doc README
-%{python_sitelib}/%{name}
-%{python_sitelib}/%{name}_scripts
 %if (0%{?fedora} > 9 || 0%{?rhel} > 5)
+%ifarch x86_64
+%{python_sitearch}/%{name}-*.egg-info
+%else
 %{python_sitelib}/%{name}-*.egg-info
+%endif
+%endif
+
+%ifarch x86_64
+%{python_sitearch}/*
+%else
+%{python_sitelib}/*
 %endif
 
 %changelog
