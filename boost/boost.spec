@@ -18,6 +18,25 @@ libraries are suitable for eventual standardization. (Some of the
 libraries have already been proposed for inclusion in the C++
 Standards Committee's upcoming C++ Standard Library Technical Report.)
 
+%files
+%defattr(-, root, root, 0755)
+%{_libdir}/libboost*.so*
+
+%package devel
+Summary: Development tools for the %{name}-%{version}
+Group: Development/Libraries
+Requires: %{name} = %{version}-%{release}
+
+%description devel
+This package contains client libraries for %{name}. If you like to develop
+programs using %{name}, you will need to install %{name}-devel.
+
+%files devel 
+%defattr(-, root, root, 0755)
+%{_includedir}/*
+%{_libdir}/*.a
+%{_libdir}/*.so
+
 %prep
 %setup -q -n %{name}-%{version}
 
@@ -31,11 +50,6 @@ Standards Committee's upcoming C++ Standard Library Technical Report.)
 
 %post
 /sbin/ldconfig
-
-%files
-%defattr(-, root, root, 0755)
-%{_libdir}/*
-%{_includedir}/*
 
 %clean
 %{__rm} -rf %{buildroot}
