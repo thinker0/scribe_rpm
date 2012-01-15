@@ -5,7 +5,7 @@
 
 Name:             fb303
 Version:          0.8.0
-Release:          3%{?dist}
+Release:          5%{?dist}
 Summary:          Facebook Bassline
 
 Group:            Development/Libraries
@@ -20,8 +20,8 @@ BuildRequires:    boost-devel >= 1.33.1
 BuildRequires:    flex
 BuildRequires:    libevent-devel
 BuildRequires:    libtool
-BuildRequires:    thrift = %{version}
-BuildRequires:    thrift-devel = %{version}
+BuildRequires:    thrift
+BuildRequires:    thrift-devel
 BuildRequires:    zlib-devel
 
 %description
@@ -41,7 +41,7 @@ developing applications that use %{name}.
 Summary:          Python bindings for %{name}
 Group:            Development/Libraries
 BuildRequires:    python-devel
-Requires:         thrift-devel = %{version}
+Requires:         thrift-devel
 
 %description python
 Python bindings for %{name}.
@@ -69,7 +69,7 @@ sed -i '/^#!\/usr\/bin\/env python/,+1 d' \
 
 %build
 cd ./contrib/fb303
-export CPPFLAGS="-fpermissive" 
+export CPPFLAGS="-fPIC -fpermissive" 
 ./bootstrap.sh --with-thriftpath=%{_prefix}
 #%configure %{config_opts} --enable-static --enable-shared --with-thriftpath=%{_prefix}
 #%configure --with-thriftpath=%{_prefix}
@@ -124,7 +124,7 @@ mv       %{buildroot}%{python_sitelib}/fb303_scripts 	%{buildroot}%{python_sitea
 %defattr(-,root,root,-)
 %doc README
 %{_datadir}/fb303
-#%{_libdir}/*.so*
+%{_libdir}/*.so*
 
 %files devel
 %defattr(-,root,root,-)

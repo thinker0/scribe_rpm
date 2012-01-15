@@ -7,7 +7,7 @@
 
 Name:             scribe
 Version:          2.2.0
-Release:          4%{?dist}
+Release:          6%{?dist}
 Summary:          A server for aggregating log data streamed in real time
 
 Group:            Development/Libraries
@@ -63,10 +63,11 @@ Python bindings for %{name}.
 
 %build
 #export CPPFLAGS="-static -O0 -DHAVE_NETDB_H=1 -fpermissive"
-export CPPFLAGS="-DHAVE_NETDB_H=1 -fpermissive"
-export LDFLAGS="-static -lrt -lc -lpthread -lboost_filesystem"
-./bootstrap.sh %{config_opts}
-%configure --enable-shared --enable-static --libdir=/usr/lib64 %{config_opts}
+export CPPFLAGS="-O3 -DHAVE_NETDB_H=1 -fpermissive"
+export LDFLAGS="-lrt -lc -lpthread -lboost_filesystem"
+#./bootstrap.sh --enable-static --enable-hdfs --enable-lzo --enable-zookeeper %{config_opts}
+./bootstrap.sh --enable-static --disable-hdfs --disable-lzo --disable-shared --enable-zookeeper %{config_opts}
+#%configure --enable-hdfs --enable-lzo --enable-zookeeper %{config_opts}
 #%configure %{config_opts}
 %{__make} %{?_smp_mflags}
 
