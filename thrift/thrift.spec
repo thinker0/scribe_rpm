@@ -28,7 +28,7 @@ Version: 	0.8.0
 License:    Apache License v2.0
 Group:      Development
 Summary:    Multi-language RPC and serialization framework
-Release:	1%{?release_tag}	
+Release:	2%{?release_tag}	
 Epoch:      1
 Group:      Development/Libraries
 URL: 		http://incubator.apache.org/thrift/
@@ -129,6 +129,12 @@ cd ../..
 cd lib/py
 %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
 cd ../..
+
+#%ifarch x86_64
+mkdir -p %{buildroot}%{python_sitearch}/thrift           %{buildroot}%{python_sitearch}/thrift
+mv       %{buildroot}%{python_sitelib}/thrift            %{buildroot}%{python_sitearch} || true
+#%endif
+
 %endif
 
 
