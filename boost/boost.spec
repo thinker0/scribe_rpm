@@ -1,6 +1,6 @@
 Name: 		boost
 Version: 	1.48.0
-Release:	1%{?release_tag}	
+Release:	2%{?release_tag}	
 License: 	Boost
 Summary:    The free peer-reviewed portable C++ source libraries
 Group:      Development/Libraries
@@ -20,6 +20,7 @@ Standards Committee's upcoming C++ Standard Library Technical Report.)
 
 %files
 %defattr(-, root, root, 0755)
+%{_libdir}/*.so
 %{_libdir}/libboost*.so*
 
 %package devel
@@ -35,12 +36,13 @@ programs using %{name}, you will need to install %{name}-devel.
 %defattr(-, root, root, 0755)
 %{_includedir}/*
 %{_libdir}/*.a
-%{_libdir}/*.so
 
 %prep
 %setup -q -n %{name}-%{version}
 
 %build
+export CPPFLAGS="%{optflags}"
+export CFLAGS="%{optflags}"
 ./bootstrap.sh --prefix=%{_prefix} --exec-prefix=%{_prefix} --libdir=%{_libdir}
 ./bjam
 
