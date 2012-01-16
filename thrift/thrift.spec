@@ -105,6 +105,7 @@ Python bindings for %{name}.
 #PATH=%{python_prefix}/bin:$PATH %configure PY_PREFIX=%{python_prefix} --prefix=%{_prefix} --exec-prefix=%{_prefix} --bindir=%{_bindir} --libdir=%{_libdir} --disable-static --without-ruby --without-erlang --without-haskell --without-perl --without-csharp --without-java --without-php --with-python 
 #./bootstrap.sh %{config_opts}
 %configure %{config_opts} \
+    --prefix=%{_prefix} --exec-prefix=%{_prefix} --bindir=%{_bindir} --libdir=%{_libdir} \
 	--without-ruby --without-erlang --without-haskell --without-perl \
 	--without-csharp --without-java --without-php \
 	--with-python 
@@ -127,13 +128,14 @@ cd ../..
 
 %if %{!?without_python: 1}
 cd lib/py
-%{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+CFLAGS="%{optflags}" %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT 
 cd ../..
+find %{buildroot} 
 
-#%ifarch x86_64
+%ifarch x86_64
 mkdir -p %{buildroot}%{python_sitearch}/thrift           %{buildroot}%{python_sitearch}/thrift
 mv       %{buildroot}%{python_sitelib}/thrift            %{buildroot}%{python_sitearch} || true
-#%endif
+%endif
 
 %endif
 
