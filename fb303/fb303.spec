@@ -1,11 +1,15 @@
 %global with_php 0
 
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
-%{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+%ifarch (x86_64 || amd64)
+  %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+%else
+  %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+%endif
 
 Name:             fb303
 Version:          0.8.0
-Release:          5%{?dist}
+Release:          6%{?dist}
 Summary:          Facebook Bassline
 
 Group:            Development/Libraries
@@ -24,6 +28,9 @@ BuildRequires:    thrift
 BuildRequires:    thrift-devel
 BuildRequires:    zlib-devel
 
+Requires:         thrift
+Requires:         thrift-python
+
 %description
 Facebook Baseline is a standard interface to monitoring, dynamic options and
 configuration, uptime reports, activity, and more.
@@ -31,7 +38,7 @@ configuration, uptime reports, activity, and more.
 %package devel
 Summary:          Development files for %{name}
 Group:            Development/Libraries
-Requires:         %{name} = %{version}
+Requires:         %{name}
 
 %description devel
 The %{name}-devel package contains libraries and header files for
@@ -41,7 +48,7 @@ developing applications that use %{name}.
 Summary:          Python bindings for %{name}
 Group:            Development/Libraries
 BuildRequires:    python-devel
-Requires:         thrift-devel
+Requires:         thrift-python
 
 %description python
 Python bindings for %{name}.
@@ -51,7 +58,7 @@ Python bindings for %{name}.
 Summary:          PHP bindings for %{name}
 Group:            Development/Libraries
 BuildRequires:    php-devel
-Requires:         thrift-php = %{version}
+Requires:         thrift-php
 
 %description php
 PHP bindings for %{name}.
@@ -67,11 +74,14 @@ sed -i '/^#!\/usr\/bin\/env python/,+1 d' \
   py/fb303_scripts/*.py \
   py/fb303/FacebookBase.py
 
+#sed -i 's/SHARED_LDFLAGS="-shared -fPIC -lthrift"/SHARED_LDFLAGS="-shared -fPIC"/g' acinclude.m4
+
 %build
 cd ./contrib/fb303
-export CPPFLAGS="-fPIC -fpermissive" 
-./bootstrap.sh --with-thriftpath=%{_prefix}
-#%configure %{config_opts} --enable-static --enable-shared --with-thriftpath=%{_prefix}
+export CPPFLAGS="-fPIC -fpermissive %{optflags}" 
+export CFLAGS="-fPIC %{optflags}"
+./bootstrap.sh --with-pic --with-thriftpath=%{_prefix}
+#%configure %{config_opts} --with-pic --with-thriftpath=%{_prefix}
 #%configure --with-thriftpath=%{_prefix}
 %{__make} %{?_smp_mflags}
 
@@ -80,7 +90,6 @@ export CPPFLAGS="-fPIC -fpermissive"
 cd ./contrib/fb303
 
 # Fix install path
-#sed -i 's/shareddir = lib/shareddir = ${prefix}\/lib/g' cpp/Makefile
 sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
 
 #%{__make} DESTDIR=%{buildroot} install
@@ -88,30 +97,26 @@ sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
 
 # Install PHP
 %if %{with_php}
-%{__mkdir_p} %{buildroot}%{_datadir}/php/%{name}
-%{__cp} -r php/FacebookBase.php %{buildroot}%{_datadir}/php/%{name}/
+  %{__mkdir_p} %{buildroot}%{_datadir}/php/%{name}
+  %{__cp} -r php/FacebookBase.php %{buildroot}%{_datadir}/php/%{name}/
 %endif
 
-%ifarch x86_64
-# Fix lib install path on x86_64
-%{__mv} %{buildroot}/usr/lib/libfb303.so %{buildroot}%{_libdir}/libfb303.so || true
+%ifarch (x86_64 || amd64)
+  # Fix lib install path on x86_64
+  %{__mv} %{buildroot}/usr/lib/libfb303.so %{buildroot}%{_libdir}/libfb303.so || true
 %endif
 
 %if %{!?without_python: 1}
+  %ifarch (x86_64 || amd64)
+    mkdir -p %{buildroot}%{python_sitearch}/fb303 			%{buildroot}%{python_sitearch}/fb303_scripts
+    %{__mv}  %{buildroot}%{python_sitelib}/fb303 			%{buildroot}%{python_sitearch} || true
+    %{__mv}  %{buildroot}%{python_sitelib}/fb303_scripts 	%{buildroot}%{python_sitearch} || true
+  %endif
 
-#%if %{?python_sitearch == '/usr/lib64/python2.4/site-packages'}
-%ifarch x86_64
-mkdir -p %{buildroot}%{python_sitearch}/fb303 			%{buildroot}%{python_sitearch}/fb303_scripts
-mv       %{buildroot}%{python_sitelib}/fb303 			%{buildroot}%{python_sitearch} || true
-mv       %{buildroot}%{python_sitelib}/fb303_scripts 	%{buildroot}%{python_sitearch} || true
+  cd py
+  %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+  cd ..
 %endif
-
-#cd py
-#%{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
-#cd ..
-
-%endif
-
 
 %clean
 %{__rm} -rf %{buildroot}
@@ -124,7 +129,7 @@ mv       %{buildroot}%{python_sitelib}/fb303_scripts 	%{buildroot}%{python_sitea
 %defattr(-,root,root,-)
 %doc README
 %{_datadir}/fb303
-%{_libdir}/*.so*
+#%{_libdir}/*.so*
 
 %files devel
 %defattr(-,root,root,-)
@@ -144,17 +149,17 @@ mv       %{buildroot}%{python_sitelib}/fb303_scripts 	%{buildroot}%{python_sitea
 %defattr(-,root,root,-)
 %doc README
 %if (0%{?fedora} > 9 || 0%{?rhel} > 5)
-%ifarch x86_64
-%{python_sitearch}/%{name}-*.egg-info
-%else
-%{python_sitelib}/%{name}-*.egg-info
-%endif
+  %ifarch (x86_64 || amd64)
+    %{python_sitearch}/%{name}-*.egg-info
+  %else
+    %{python_sitelib}/%{name}-*.egg-info
+  %endif
 %endif
 
-%ifarch x86_64
-%{python_sitearch}/*
+%ifarch (x86_64 || amd64)
+  %{python_sitearch}/*
 %else
-%{python_sitelib}/*
+  %{python_sitelib}/*
 %endif
 
 %changelog
