@@ -1,7 +1,7 @@
 %global with_php 0
 
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
-%ifarch (x86_64 || amd64)
+%ifarch x86_64
   %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 %else
   %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
@@ -77,8 +77,6 @@ sed -i '/^#!\/usr\/bin\/env python/,+1 d' \
   py/fb303_scripts/*.py \
   py/fb303/FacebookBase.py
 
-#sed -i 's/SHARED_LDFLAGS="-shared -fPIC -lthrift"/SHARED_LDFLAGS="-shared -fPIC"/g' acinclude.m4
-
 %build
 #cd ./contrib/fb303
 export CPPFLAGS="-fPIC -fpermissive %{optflags}" 
@@ -89,12 +87,16 @@ export LDFLAGS="-fPIC %{optflags}"
 #%configure --with-thriftpath=%{_prefix}
 %{__make} %{?_smp_mflags}
 
+%if %{!?without_python: 1}
+  cd py
+  #LDFLAGS=-m32 %{__python} setup.py build
+  %{__python} setup.py build
+  cd ..
+%endif
+
 %install
 %{__rm} -rf %{buildroot}
 #cd ./contrib/fb303
-
-# Fix install path
-sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
 
 #%{__make} DESTDIR=%{buildroot} install
 %{__make} install DESTDIR=%{buildroot} INSTALL="%{__install} -p"
@@ -105,21 +107,28 @@ sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
   %{__cp} -r php/FacebookBase.php %{buildroot}%{_datadir}/php/%{name}/
 %endif
 
-%ifarch (x86_64 || amd64)
+%ifarch x86_64
   # Fix lib install path on x86_64
   %{__mv} %{buildroot}/usr/lib/libfb303.so %{buildroot}%{_libdir}/libfb303.so || true
 %endif
 
 %if %{!?without_python: 1}
-  %ifarch (x86_64 || amd64)
+  cd py
+  #LDFLAGS=-m32 %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+  %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+  cd ..
+  %ifarch x86_64
     mkdir -p %{buildroot}%{python_sitearch}/fb303 			%{buildroot}%{python_sitearch}/fb303_scripts
     %{__mv}  %{buildroot}%{python_sitelib}/fb303 			%{buildroot}%{python_sitearch} || true
     %{__mv}  %{buildroot}%{python_sitelib}/fb303_scripts 	%{buildroot}%{python_sitearch} || true
+  %else
+    echo "arch i386 sitearch: %{python_sitearch},  sitelib: %{python_sitelib}"
+    if [ -d %{buildroot}/usr/lib64 ]; then
+      mkdir -p %{buildroot}%{python_sitelib}/fb303 			%{buildroot}%{python_sitelib}/fb303_scripts
+      %{__mv} %{buildroot}/usr/lib64/python*/site-packages/fb303/* %{buildroot}%{python_sitelib}/fb303/
+      %{__mv} %{buildroot}/usr/lib64/python*/site-packages/fb303_scripts/* %{buildroot}%{python_sitelib}/fb303_scripts/
+    fi
   %endif
-
-  cd py
-  LDFLAGS=-m32 %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
-  cd ..
 %endif
 
 %clean
@@ -131,6 +140,7 @@ sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
 
 %files
 %defattr(-,root,root,-)
+%{_datadir}/fb303
 %{_libdir}/*.so*
 %doc README
 
@@ -138,7 +148,6 @@ sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
 %defattr(-,root,root,-)
 %doc README
 %{_includedir}/thrift/fb303
-%{_datadir}/fb303
 %{_libdir}/*.a
 
 %if %{with_php}
@@ -152,14 +161,14 @@ sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
 %defattr(-,root,root,-)
 %doc README
 %if (0%{?fedora} > 9 || 0%{?rhel} > 5)
-  %ifarch (x86_64 || amd64)
+  %ifarch x86_64
     %{python_sitearch}/%{name}-*.egg-info
   %else
     %{python_sitelib}/%{name}-*.egg-info
   %endif
 %endif
 
-%ifarch (x86_64 || amd64)
+%ifarch x86_64
   %{python_sitearch}/*
 %else
   %{python_sitelib}/*
