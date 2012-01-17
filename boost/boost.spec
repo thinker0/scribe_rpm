@@ -43,11 +43,15 @@ programs using %{name}, you will need to install %{name}-devel.
 %build
 export CPPFLAGS="%{optflags}"
 export CFLAGS="%{optflags}"
+export LDLAGS="%{optflags}"
 ./bootstrap.sh --prefix=%{_prefix} --exec-prefix=%{_prefix} --libdir=%{_libdir}
 ./bjam
 
 %install
 %{__rm} -rf %{buildroot}
+export CPPFLAGS="%{optflags}"
+export CFLAGS="%{optflags}"
+export LDLAGS="%{optflags}"
 ./bjam --prefix=%{buildroot} --libdir=%{buildroot}%{_libdir} --includedir=%{buildroot}%{_includedir} install
 
 %post
