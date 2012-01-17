@@ -19,7 +19,7 @@
 
 # TODO(dreiss): Have a Python build with and without the extension.
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
-%ifarch (x86_64 || amd64)
+%ifarch x86_64
   %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 %else
   %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
@@ -95,7 +95,7 @@ Python bindings for %{name}.
 %files python
 %defattr(-,root,root,-)
 %doc LICENSE
-%ifarch (x86_64 || amd64)
+%ifarch x86_64
   %{python_sitearch}/*
 %else
   %{python_sitelib}/*
@@ -138,7 +138,7 @@ export CFLAGS="-fPIC %{optflags}"
   LDFLAGS=-m32 %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT 
   cd ../..
 
-  %ifarch (x86_64 || amd64)
+  %ifarch x86_64
     mkdir -p %{buildroot}%{python_sitearch}/thrift %{buildroot}%{python_sitearch}/thrift
     %{__mv}  %{buildroot}%{python_sitelib}/thrift  %{buildroot}%{python_sitearch} || true
   %else
