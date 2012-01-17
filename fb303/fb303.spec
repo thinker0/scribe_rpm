@@ -7,15 +7,17 @@
   %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
 %endif
 
-Name:             fb303
-Version:          0.8.0
-Release:          6%{?dist}
+Name:             libfb303
+Version:          20080209
+Release:          1%{?dist}
 Summary:          Facebook Bassline
 
 Group:            Development/Libraries
 License:          ASL 2.0
 URL:              http://incubator.apache.org/thrift
-Source0:          http://www.apache.org/dist/thrift/%{version}/thrift-%{version}.tar.gz
+Source0:          %{name}-%{version}.tar.gz
+# patch static/shared both compile
+#Patch0:           fb303-static-shared-all.patch
 BuildRoot:        %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:    automake
@@ -66,8 +68,9 @@ PHP bindings for %{name}.
 
 %prep
 %{__rm} -rf %{buildroot}
-%setup -q -n thrift-%{version}
-cd ./contrib/fb303
+%setup -q -n %{name}-%{version}
+#%patch0 -p1
+#cd ./contrib/fb303
 
 # Fix non-executable-script error
 sed -i '/^#!\/usr\/bin\/env python/,+1 d' \
@@ -77,9 +80,10 @@ sed -i '/^#!\/usr\/bin\/env python/,+1 d' \
 #sed -i 's/SHARED_LDFLAGS="-shared -fPIC -lthrift"/SHARED_LDFLAGS="-shared -fPIC"/g' acinclude.m4
 
 %build
-cd ./contrib/fb303
+#cd ./contrib/fb303
 export CPPFLAGS="-fPIC -fpermissive %{optflags}" 
 export CFLAGS="-fPIC %{optflags}"
+export LDFLAGS="-fPIC %{optflags}"
 ./bootstrap.sh --with-pic --with-thriftpath=%{_prefix}
 #%configure %{config_opts} --with-pic --with-thriftpath=%{_prefix}
 #%configure --with-thriftpath=%{_prefix}
@@ -87,7 +91,7 @@ export CFLAGS="-fPIC %{optflags}"
 
 %install
 %{__rm} -rf %{buildroot}
-cd ./contrib/fb303
+#cd ./contrib/fb303
 
 # Fix install path
 sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
@@ -114,7 +118,7 @@ sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
   %endif
 
   cd py
-  %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
+  LDFLAGS=-m32 %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT
   cd ..
 %endif
 
@@ -127,15 +131,14 @@ sed -i 's/shareddir = lib/shareddir = ${_libdir}/g' cpp/Makefile
 
 %files
 %defattr(-,root,root,-)
+%{_libdir}/*.so*
 %doc README
-%{_datadir}/fb303
-#%{_libdir}/*.so*
 
 %files devel
 %defattr(-,root,root,-)
 %doc README
 %{_includedir}/thrift/fb303
-#%{_libdir}/*.so
+%{_datadir}/fb303
 %{_libdir}/*.a
 
 %if %{with_php}
