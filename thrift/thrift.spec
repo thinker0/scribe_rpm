@@ -19,7 +19,11 @@
 
 # TODO(dreiss): Have a Python build with and without the extension.
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
-%{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+%ifarch (x86_64 || amd64)
+  %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
+%else
+  %{!?python_sitearch: %define python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib()")}
+%endif
 # TODO(dreiss): Where is this supposed to go?
 %{!?thrift_erlang_root: %define thrift_erlang_root /opt/thrift-erl}
 
@@ -28,7 +32,7 @@ Version: 	0.8.0
 License:    Apache License v2.0
 Group:      Development
 Summary:    Multi-language RPC and serialization framework
-Release:	2%{?release_tag}	
+Release:	3%{?release_tag}	
 Epoch:      1
 Group:      Development/Libraries
 URL: 		http://incubator.apache.org/thrift/
@@ -50,18 +54,16 @@ Objective Caml, and Haskell.
 %defattr(-, root, root, 0755)
 %{_bindir}/*
 %{_libdir}/libthrift*.so*
-
 #%exclude %{_datadir}/doc/*
 #%exclude %{python_prefix}/lib/python*
 #%exclude %{java_prefix}/*
 #%{java_prefix}/*
 #%{_datadir}/doc/*
 
-
 %package devel
 Summary: Development tools for the %{name}-%{version}
 Group: Development/Libraries
-Requires: %{name} = %{version}-%{release}
+Requires: %{name}
 Requires: pkgconfig
 BuildRequires: boost-devel
 BuildRequires: libevent
@@ -93,7 +95,11 @@ Python bindings for %{name}.
 %files python
 %defattr(-,root,root,-)
 %doc LICENSE
-%{python_sitearch}/*
+%ifarch (x86_64 || amd64)
+  %{python_sitearch}/*
+%else
+  %{python_sitelib}/*
+%endif
 
 %prep
 %{__rm} -rf %{buildroot}
@@ -104,6 +110,8 @@ Python bindings for %{name}.
 #./bootstrap.sh 
 #PATH=%{python_prefix}/bin:$PATH %configure PY_PREFIX=%{python_prefix} --prefix=%{_prefix} --exec-prefix=%{_prefix} --bindir=%{_bindir} --libdir=%{_libdir} --disable-static --without-ruby --without-erlang --without-haskell --without-perl --without-csharp --without-java --without-php --with-python 
 #./bootstrap.sh %{config_opts}
+export CPPFLAGS="-fPIC %{optflags}"
+export CFLAGS="-fPIC %{optflags}"
 %configure %{config_opts} \
     --prefix=%{_prefix} --exec-prefix=%{_prefix} --bindir=%{_bindir} --libdir=%{_libdir} \
 	--without-ruby --without-erlang --without-haskell --without-perl \
@@ -115,28 +123,31 @@ Python bindings for %{name}.
 %{__make}
 
 %if %{!?without_python: 1}
-cd lib/py
-CFLAGS="%{optflags}" %{__python} setup.py build
-cd ../..
+  cd lib/py
+  LDFLAGS=-m32 %{__python} setup.py build
+  cd ../..
 %endif
 
 
 %install
 %{__rm} -rf %{buildroot}
-#make install DESTDIR=%{buildroot} INSTALL="%{__install} -p"
 %{__make} install DESTDIR=%{buildroot} INSTALL="%{__install} -p"
 
 %if %{!?without_python: 1}
-cd lib/py
-CFLAGS="%{optflags}" %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT 
-cd ../..
-find %{buildroot} 
+  cd lib/py
+  LDFLAGS=-m32 %{__python} setup.py install -O1 --skip-build --root $RPM_BUILD_ROOT 
+  cd ../..
 
-%ifarch x86_64
-mkdir -p %{buildroot}%{python_sitearch}/thrift           %{buildroot}%{python_sitearch}/thrift
-mv       %{buildroot}%{python_sitelib}/thrift            %{buildroot}%{python_sitearch} || true
-%endif
-
+  %ifarch (x86_64 || amd64)
+    mkdir -p %{buildroot}%{python_sitearch}/thrift %{buildroot}%{python_sitearch}/thrift
+    %{__mv}  %{buildroot}%{python_sitelib}/thrift  %{buildroot}%{python_sitearch} || true
+  %else
+    echo "arch i386 sitearch: %{python_sitearch},  sitelib: %{python_sitelib}"
+    if [ -d %{buildroot}/usr/lib64 ]; then
+      mkdir -p %{buildroot}%{python_sitelib}/thrift/
+      %{__mv} %{buildroot}/usr/lib64/python*/site-packages/thrift/* %{buildroot}%{python_sitelib}/thrift/
+    fi
+  %endif
 %endif
 
 
