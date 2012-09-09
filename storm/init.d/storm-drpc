@@ -33,8 +33,8 @@ start() {
     else
 	echo "Starting storm drpc..."
     fi 
-    STORM_CMD="java -$JVM_TYPE -Xmx$UI_JVM_MEMORY -Djava.library.path=\"$JAVA_LIBRARY_PATH\" -Dstorm.options=\"$STORM_OPTIONS\" -Dstorm.home=\"$STORM_HOME\" -Dlog4j.configuration=storm.log.properties -Dlogfile.name=drpc.log $UI_JVM_OPTS -cp \"$CLASSPATH\" backtype.storm.drpc.core &"
-    daemon "$STORM_CMD > /dev/null && echo \$! > $PID_FILE"
+    STORM_CMD="java -$JVM_TYPE -Xmx$UI_JVM_MEMORY -Djava.library.path=\"$JAVA_LIBRARY_PATH\" -Dstorm.options=\"$STORM_OPTIONS\" -Dstorm.home=\"$STORM_HOME\" -Dlog4j.configuration=storm.log.properties -Dlogfile.name=drpc.log $UI_JVM_OPTS -cp \"$CLASSPATH\" backtype.storm.daemon.drpc &"
+    daemon --user=storm "$STORM_CMD > /dev/null && echo \$! > $PID_FILE"
     RETVAL=$?
     print_storm_status $PID_FILE
     return $RETVAL

@@ -34,7 +34,7 @@ start() {
 	echo "Starting storm nimbus..."
     fi 
     STORM_CMD="java -$JVM_TYPE -Xmx$NIMBUS_JVM_MEMORY -Djava.library.path=\"$JAVA_LIBRARY_PATH\" -Dstorm.options=\"$STORM_OPTIONS\" -Dstorm.home=\"$STORM_HOME\" -Dlog4j.configuration=storm.log.properties -Dlogfile.name=nimbus.log $NIMBUS_JVM_OPTS -cp \"$CLASSPATH\" backtype.storm.daemon.nimbus &"
-    daemon "$STORM_CMD > /dev/null && echo \$! > $PID_FILE"
+    daemon --user=storm"$STORM_CMD > /dev/null && echo \$! > $PID_FILE"
     RETVAL=$?
     print_storm_status $PID_FILE
     return $RETVAL
